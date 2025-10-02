@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/benbjohnson/hashfs"
+	"github.com/alvarolm/hashfs"
 )
 
 //go:embed testdata
