@@ -39,39 +39,19 @@ http.Handle("/assets/", http.StripPrefix("/assets/", hashfs.FileServer(fsys)))
 ```
 
 Next, your html templating library can obtain the hashname of your file using
-the `hashfs.FS.HashName()` method:
-
-```go
-func renderHTML(w io.Writer) {
-	result := fsys.HashName("scripts/main.js")
-	fmt.Fprintf(w, `<html>`)
-	fmt.Fprintf(w, `<script src="%s"></script>`, result.Name)
-	fmt.Fprintf(w, `<!-- SHA256: %s -->`, result.SHA256)
-	fmt.Fprintf(w, `</html>`)
-}
-```
+the `hashfs.FS.HashName()` method.
 
 ### Subresource Integrity
 
 You can use the SHA256 hash for [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) validation:
 
 ```go
-import (
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
-)
-
 func renderHTML(w io.Writer) {
 	result := fsys.HashName("scripts/main.js")
 
-	// Convert hex hash to base64 for SRI
-	hashBytes, _ := hex.DecodeString(result.SHA256)
-	sriHash := base64.StdEncoding.EncodeToString(hashBytes)
-
 	fmt.Fprintf(w, `<html>`)
 	fmt.Fprintf(w, `<script src="%s" integrity="sha256-%s" crossorigin="anonymous"></script>`,
-		result.Name, sriHash)
+		result.Name, result.SHA256Base64)
 	fmt.Fprintf(w, `</html>`)
 }
 ```

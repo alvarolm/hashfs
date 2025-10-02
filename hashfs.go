@@ -2,6 +2,7 @@ package hashfs
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -27,13 +28,14 @@ type FS struct {
 
 	mu sync.RWMutex
 	m  map[string]string    // lookup (path to hash path)
-	r  map[string][2]string // reverse lookup (hash path to path)
+	r  map[string][3]string // reverse lookup (hash path to [name, hex, base64])
 }
 
 // FileReference contains the hashed filename and its SHA256 hash.
 type FileReference struct {
-	Name   string // The formatted hash filename
-	SHA256 string // The full SHA256 hash as hex string
+	Name         string // The formatted hash filename
+	SHA256       string // The full SHA256 hash as hex string
+	SHA256Base64 string // The full SHA256 hash as base64 string for SRI
 }
 
 func NewFS(fsys fs.FS, pathPrefix string) *FS {
@@ -41,7 +43,7 @@ func NewFS(fsys fs.FS, pathPrefix string) *FS {
 		fsys:       fsys,
 		pathPrefix: pathPrefix,
 		m:          make(map[string]string),
-		r:          make(map[string][2]string),
+		r:          make(map[string][3]string),
 	}
 }
 
@@ -70,30 +72,32 @@ func (fsys *FS) HashName(name string) FileReference {
 	// Lookup cached formatted name, if exists.
 	fsys.mu.RLock()
 	if s := fsys.m[name]; s != "" {
-		hash := fsys.r[s][1]
+		hashhex := fsys.r[s][1]
+		hashb64 := fsys.r[s][2]
 		fsys.mu.RUnlock()
-		return FileReference{Name: path.Join(fsys.pathPrefix, s), SHA256: hash}
+		return FileReference{Name: path.Join(fsys.pathPrefix, s), SHA256: hashhex, SHA256Base64: hashb64}
 	}
 	fsys.mu.RUnlock()
 
 	// Read file contents. Return original filename if we receive an error.
 	buf, err := fs.ReadFile(fsys.fsys, name)
 	if err != nil {
-		return FileReference{Name: path.Join(fsys.pathPrefix, name), SHA256: ""}
+		return FileReference{Name: path.Join(fsys.pathPrefix, name), SHA256: "", SHA256Base64: ""}
 	}
 
 	// Compute hash and build filename.
 	hash := sha256.Sum256(buf)
 	hashhex := hex.EncodeToString(hash[:])
+	hashb64 := base64.StdEncoding.EncodeToString(hash[:])
 	hashname := FormatName(name, hashhex)
 
 	// Store in lookups.
 	fsys.mu.Lock()
 	fsys.m[name] = hashname
-	fsys.r[hashname] = [2]string{name, hashhex}
+	fsys.r[hashname] = [3]string{name, hashhex, hashb64}
 	fsys.mu.Unlock()
 
-	return FileReference{Name: path.Join(fsys.pathPrefix, hashname), SHA256: hashhex}
+	return FileReference{Name: path.Join(fsys.pathPrefix, hashname), SHA256: hashhex, SHA256Base64: hashb64}
 }
 
 // FormatName returns a hash name that inserts hash before the filename's

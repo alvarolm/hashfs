@@ -108,6 +108,9 @@ func TestFS_Name(t *testing.T) {
 		if got, want := result.SHA256, `b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628`; got != want {
 			t.Fatalf("HashName().SHA256=%q, want %q", got, want)
 		}
+		if got, want := result.SHA256Base64, `tjOlh8ZS0COGxPFvjG9qq3NS2X8WNnw8QFdiFDct1ig=`; got != want {
+			t.Fatalf("HashName().SHA256Base64=%q, want %q", got, want)
+		}
 
 		// Fetch a second time to pull from cache.
 		result = f.HashName("testdata/baz.html")
@@ -116,6 +119,9 @@ func TestFS_Name(t *testing.T) {
 		}
 		if got, want := result.SHA256, `b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628`; got != want {
 			t.Fatalf("HashName().SHA256=%q, want %q", got, want)
+		}
+		if got, want := result.SHA256Base64, `tjOlh8ZS0COGxPFvjG9qq3NS2X8WNnw8QFdiFDct1ig=`; got != want {
+			t.Fatalf("HashName().SHA256Base64=%q, want %q", got, want)
 		}
 	})
 
@@ -126,6 +132,9 @@ func TestFS_Name(t *testing.T) {
 		}
 		if got, want := result.SHA256, ``; got != want {
 			t.Fatalf("HashName().SHA256=%q, want %q", got, want)
+		}
+		if got, want := result.SHA256Base64, ``; got != want {
+			t.Fatalf("HashName().SHA256Base64=%q, want %q", got, want)
 		}
 	})
 }
@@ -182,6 +191,9 @@ func TestHash(t *testing.T) {
 
 	if result.SHA256 != "b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628" {
 		t.Fatalf("hash=%q, want %q", result.SHA256, "b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628")
+	}
+	if result.SHA256Base64 != "tjOlh8ZS0COGxPFvjG9qq3NS2X8WNnw8QFdiFDct1ig=" {
+		t.Fatalf("hash base64=%q, want %q", result.SHA256Base64, "tjOlh8ZS0COGxPFvjG9qq3NS2X8WNnw8QFdiFDct1ig=")
 	}
 }
 
