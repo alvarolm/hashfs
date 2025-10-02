@@ -168,6 +168,15 @@ func TestFS_Open(t *testing.T) {
 	})
 }
 
+func TestHash(t *testing.T) {
+	f := hashfs.NewFS(fsys)
+	result := f.HashName("testdata/baz.html")
+
+	if result.SHA256 != "b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628" {
+		t.Fatalf("hash=%q, want %q", result.SHA256, "b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628")
+	}
+}
+
 func TestFileServer(t *testing.T) {
 	t.Run("NoHash", func(t *testing.T) {
 		r, _ := http.NewRequest("GET", "testdata/baz.html", nil)
