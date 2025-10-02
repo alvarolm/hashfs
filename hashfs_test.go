@@ -101,19 +101,31 @@ func TestParseName(t *testing.T) {
 func TestFS_Name(t *testing.T) {
 	t.Run("Exists", func(t *testing.T) {
 		f := hashfs.NewFS(fsys)
-		if got, want := f.HashName("testdata/baz.html"), `testdata/baz-b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628.html`; got != want {
-			t.Fatalf("HashName()=%q, want %q", got, want)
+		result := f.HashName("testdata/baz.html")
+		if got, want := result.Name, `testdata/baz-b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628.html`; got != want {
+			t.Fatalf("HashName().Name=%q, want %q", got, want)
+		}
+		if got, want := result.SHA256, `b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628`; got != want {
+			t.Fatalf("HashName().SHA256=%q, want %q", got, want)
 		}
 
 		// Fetch a second time to pull from cache.
-		if got, want := f.HashName("testdata/baz.html"), `testdata/baz-b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628.html`; got != want {
-			t.Fatalf("HashName()=%q, want %q", got, want)
+		result = f.HashName("testdata/baz.html")
+		if got, want := result.Name, `testdata/baz-b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628.html`; got != want {
+			t.Fatalf("HashName().Name=%q, want %q", got, want)
+		}
+		if got, want := result.SHA256, `b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628`; got != want {
+			t.Fatalf("HashName().SHA256=%q, want %q", got, want)
 		}
 	})
 
 	t.Run("NotExists", func(t *testing.T) {
-		if got, want := hashfs.NewFS(fsys).HashName("testdata/foobar"), `testdata/foobar`; got != want {
-			t.Fatalf("HashName()=%q, want %q", got, want)
+		result := hashfs.NewFS(fsys).HashName("testdata/foobar")
+		if got, want := result.Name, `testdata/foobar`; got != want {
+			t.Fatalf("HashName().Name=%q, want %q", got, want)
+		}
+		if got, want := result.SHA256, ``; got != want {
+			t.Fatalf("HashName().SHA256=%q, want %q", got, want)
 		}
 	})
 }

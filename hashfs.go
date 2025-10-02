@@ -29,6 +29,12 @@ type FS struct {
 	r  map[string][2]string // reverse lookup (hash path to path)
 }
 
+// HashResult contains the hashed filename and its SHA256 hash.
+type HashResult struct {
+	Name   string // The formatted hash filename
+	SHA256 string // The full SHA256 hash as hex string
+}
+
 func NewFS(fsys fs.FS) *FS {
 	return &FS{
 		fsys: fsys,
@@ -48,7 +54,7 @@ func (fsys *FS) open(name string) (_ fs.File, hash string, err error) {
 	// Parse filename to see if it contains a hash.
 	// If so, check if hash name matches.
 	base, hash := fsys.ParseName(name)
-	if hash != "" && fsys.HashName(base) == name {
+	if hash != "" && fsys.HashName(base).Name == name {
 		name = base
 	}
 
@@ -56,21 +62,22 @@ func (fsys *FS) open(name string) (_ fs.File, hash string, err error) {
 	return f, hash, err
 }
 
-// HashName returns the hash name for a path, if exists.
-// Otherwise returns the original path.
-func (fsys *FS) HashName(name string) string {
+// HashName returns the hash name and SHA256 for a path, if exists.
+// Otherwise returns the original path with an empty SHA256.
+func (fsys *FS) HashName(name string) HashResult {
 	// Lookup cached formatted name, if exists.
 	fsys.mu.RLock()
 	if s := fsys.m[name]; s != "" {
+		hash := fsys.r[s][1]
 		fsys.mu.RUnlock()
-		return s
+		return HashResult{Name: s, SHA256: hash}
 	}
 	fsys.mu.RUnlock()
 
 	// Read file contents. Return original filename if we receive an error.
 	buf, err := fs.ReadFile(fsys.fsys, name)
 	if err != nil {
-		return name
+		return HashResult{Name: name, SHA256: ""}
 	}
 
 	// Compute hash and build filename.
@@ -84,7 +91,7 @@ func (fsys *FS) HashName(name string) string {
 	fsys.r[hashname] = [2]string{name, hashhex}
 	fsys.mu.Unlock()
 
-	return hashname
+	return HashResult{Name: hashname, SHA256: hashhex}
 }
 
 // FormatName returns a hash name that inserts hash before the filename's

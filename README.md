@@ -37,8 +37,10 @@ the `hashfs.FS.HashName()` method:
 
 ```go
 func renderHTML(w io.Writer) {
+	result := fsys.HashName("scripts/main.js")
 	fmt.Fprintf(w, `<html>`)
-	fmt.Fprintf(w, `<script src="/assets/%s"></script>`, fsys.HashName("scripts/main.js"))
+	fmt.Fprintf(w, `<script src="/assets/%s"></script>`, result.Name)
+	fmt.Fprintf(w, `<!-- SHA256: %s -->`, result.SHA256)
 	fmt.Fprintf(w, `</html>`)
 }
 ```
