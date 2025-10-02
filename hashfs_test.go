@@ -100,7 +100,7 @@ func TestParseName(t *testing.T) {
 
 func TestFS_Name(t *testing.T) {
 	t.Run("Exists", func(t *testing.T) {
-		f := hashfs.NewFS(fsys)
+		f := hashfs.NewFS(fsys, "")
 		result := f.HashName("testdata/baz.html")
 		if got, want := result.Name, `testdata/baz-b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628.html`; got != want {
 			t.Fatalf("HashName().Name=%q, want %q", got, want)
@@ -120,7 +120,7 @@ func TestFS_Name(t *testing.T) {
 	})
 
 	t.Run("NotExists", func(t *testing.T) {
-		result := hashfs.NewFS(fsys).HashName("testdata/foobar")
+		result := hashfs.NewFS(fsys, "").HashName("testdata/foobar")
 		if got, want := result.Name, `testdata/foobar`; got != want {
 			t.Fatalf("HashName().Name=%q, want %q", got, want)
 		}
@@ -130,9 +130,17 @@ func TestFS_Name(t *testing.T) {
 	})
 }
 
+func TestFS_PathPrefix(t *testing.T) {
+	f := hashfs.NewFS(fsys, "/static")
+	result := f.HashName("testdata/baz.html")
+	if got, want := result.Name, `/static/testdata/baz-b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628.html`; got != want {
+		t.Fatalf("HashName().Name=%q, want %q", got, want)
+	}
+}
+
 func TestFS_Open(t *testing.T) {
 	t.Run("ExistsNoHash", func(t *testing.T) {
-		if buf, err := fs.ReadFile(hashfs.NewFS(fsys), "testdata/baz.html"); err != nil {
+		if buf, err := fs.ReadFile(hashfs.NewFS(fsys, ""), "testdata/baz.html"); err != nil {
 			t.Fatal(err)
 		} else if got, want := string(buf), `<html></html>`; got != want {
 			t.Fatalf("ReadFile()=%q, want %q", got, want)
@@ -140,7 +148,7 @@ func TestFS_Open(t *testing.T) {
 	})
 
 	t.Run("ExistsWithHash", func(t *testing.T) {
-		f := hashfs.NewFS(fsys)
+		f := hashfs.NewFS(fsys, "")
 		if buf, err := fs.ReadFile(f, "testdata/baz-b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628.html"); err != nil {
 			t.Fatal(err)
 		} else if got, want := string(buf), `<html></html>`; got != want {
@@ -156,20 +164,20 @@ func TestFS_Open(t *testing.T) {
 	})
 
 	t.Run("ExistsWithMismatchHash", func(t *testing.T) {
-		if _, err := fs.ReadFile(hashfs.NewFS(fsys), "testdata/baz-0000000000000000000000000000000000000000000000000000000000000000.html"); !os.IsNotExist(err) {
+		if _, err := fs.ReadFile(hashfs.NewFS(fsys, ""), "testdata/baz-0000000000000000000000000000000000000000000000000000000000000000.html"); !os.IsNotExist(err) {
 			t.Fatal("expected not exists")
 		}
 	})
 
 	t.Run("NotExists", func(t *testing.T) {
-		if _, err := fs.ReadFile(hashfs.NewFS(fsys), "nosuchfile"); !os.IsNotExist(err) {
+		if _, err := fs.ReadFile(hashfs.NewFS(fsys, ""), "nosuchfile"); !os.IsNotExist(err) {
 			t.Fatal("expected not exists")
 		}
 	})
 }
 
 func TestHash(t *testing.T) {
-	f := hashfs.NewFS(fsys)
+	f := hashfs.NewFS(fsys, "")
 	result := f.HashName("testdata/baz.html")
 
 	if result.SHA256 != "b633a587c652d02386c4f16f8c6f6aab7352d97f16367c3c40576214372dd628" {

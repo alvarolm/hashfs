@@ -22,7 +22,8 @@ var _ fs.FS = (*FS)(nil)
 // hashes in the filename. This allows the caller to aggressively cache the
 // data since the filename will change if the data changes.
 type FS struct {
-	fsys fs.FS
+	fsys       fs.FS
+	pathPrefix string
 
 	mu sync.RWMutex
 	m  map[string]string    // lookup (path to hash path)
@@ -35,11 +36,12 @@ type FileReference struct {
 	SHA256 string // The full SHA256 hash as hex string
 }
 
-func NewFS(fsys fs.FS) *FS {
+func NewFS(fsys fs.FS, pathPrefix string) *FS {
 	return &FS{
-		fsys: fsys,
-		m:    make(map[string]string),
-		r:    make(map[string][2]string),
+		fsys:       fsys,
+		pathPrefix: pathPrefix,
+		m:          make(map[string]string),
+		r:          make(map[string][2]string),
 	}
 }
 
@@ -70,14 +72,14 @@ func (fsys *FS) HashName(name string) FileReference {
 	if s := fsys.m[name]; s != "" {
 		hash := fsys.r[s][1]
 		fsys.mu.RUnlock()
-		return FileReference{Name: s, SHA256: hash}
+		return FileReference{Name: path.Join(fsys.pathPrefix, s), SHA256: hash}
 	}
 	fsys.mu.RUnlock()
 
 	// Read file contents. Return original filename if we receive an error.
 	buf, err := fs.ReadFile(fsys.fsys, name)
 	if err != nil {
-		return FileReference{Name: name, SHA256: ""}
+		return FileReference{Name: path.Join(fsys.pathPrefix, name), SHA256: ""}
 	}
 
 	// Compute hash and build filename.
@@ -91,7 +93,7 @@ func (fsys *FS) HashName(name string) FileReference {
 	fsys.r[hashname] = [2]string{name, hashhex}
 	fsys.mu.Unlock()
 
-	return FileReference{Name: hashname, SHA256: hashhex}
+	return FileReference{Name: path.Join(fsys.pathPrefix, hashname), SHA256: hashhex}
 }
 
 // FormatName returns a hash name that inserts hash before the filename's
@@ -159,7 +161,7 @@ var hashSuffixRegex = regexp.MustCompile(`-[0-9a-f]{64}`)
 func FileServer(fsys fs.FS) http.Handler {
 	hfsys, ok := fsys.(*FS)
 	if !ok {
-		hfsys = NewFS(fsys)
+		hfsys = NewFS(fsys, "")
 	}
 	return &fsHandler{fsys: hfsys}
 }
