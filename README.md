@@ -23,7 +23,13 @@ To use `hashfs`, first wrap your `embed.FS` in a `hashfs.FS` filesystem:
 //go:embed scripts stylesheets images
 var embedFS embed.FS
 
-var fsys = hashfs.NewFS(embedFS)
+var fsys = hashfs.NewFS(embedFS, "")
+```
+
+Optionally, you can specify a path prefix to prepend to all hash names:
+
+```go
+var fsys = hashfs.NewFS(embedFS, "/assets")
 ```
 
 Then attach a `hashfs.FileServer()` to your router:
@@ -39,8 +45,33 @@ the `hashfs.FS.HashName()` method:
 func renderHTML(w io.Writer) {
 	result := fsys.HashName("scripts/main.js")
 	fmt.Fprintf(w, `<html>`)
-	fmt.Fprintf(w, `<script src="/assets/%s"></script>`, result.Name)
+	fmt.Fprintf(w, `<script src="%s"></script>`, result.Name)
 	fmt.Fprintf(w, `<!-- SHA256: %s -->`, result.SHA256)
+	fmt.Fprintf(w, `</html>`)
+}
+```
+
+### Subresource Integrity
+
+You can use the SHA256 hash for [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) validation:
+
+```go
+import (
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+)
+
+func renderHTML(w io.Writer) {
+	result := fsys.HashName("scripts/main.js")
+
+	// Convert hex hash to base64 for SRI
+	hashBytes, _ := hex.DecodeString(result.SHA256)
+	sriHash := base64.StdEncoding.EncodeToString(hashBytes)
+
+	fmt.Fprintf(w, `<html>`)
+	fmt.Fprintf(w, `<script src="%s" integrity="sha256-%s" crossorigin="anonymous"></script>`,
+		result.Name, sriHash)
 	fmt.Fprintf(w, `</html>`)
 }
 ```
